@@ -1,0 +1,1338 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>برنامه یادگیری زبان</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- فونت‌های فارسی -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lalezar&display=swap" rel="stylesheet">
+    <style>
+        /* تعریف متغیرها برای رنگ‌ها */
+        :root {
+            --primary-color: #000000;
+            --secondary-color: #333333;
+            --accent-color: #555555;
+            --text-color: #333;
+            --light-text: #fff;
+            --card-back: #ffffff;
+            --known-color: #4caf50;
+            --unknown-color: #f44336;
+            --review-all-color: #2196f3;
+            --starred-color: #ffc107;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --header-color: rgba(0, 0, 0, 0.1);
+            --border-color: rgba(0, 0, 0, 0.2);
+        }
+
+        /* استایل کلی صفحه */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to left, var(--primary-color), var(--secondary-color));
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            transition: background-color 0.5s;
+            background-color: var(--background-color);
+        }
+
+        /* انیمیشن زمینه حروف انگلیسی */
+        .floating-letters {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .floating-letters span {
+            position: absolute;
+            display: block;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 24px;
+            font-weight: bold;
+            animation: float 20s linear infinite;
+            bottom: -50px;
+            user-select: none;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+            }
+        }
+
+        /* استایل کانتینر اصلی */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* استایل هدر */
+        header {
+            text-align: center;
+            padding: 20px 0;
+            width: 100%;
+        }
+
+        .page-title {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-title h1 {
+            font-size: 2.2rem;
+            color: var(--primary-color);
+            font-family: 'Lalezar', cursive;
+        }
+
+        /* استایل نوار کنترل */
+        .control-bar {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-input-container {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .file-input-container input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .file-input-button {
+            display: inline-block;
+            padding: 10px 15px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            font-size: 0.9rem;
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .uploaded-files {
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+
+        .current-mode {
+            color: var(--text-color);
+            font-size: 0.9rem;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        /* استایل بخش اصلی فلش کارت */
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+        }
+
+        /* استایل جدید برای لیست کلمات */
+        .words-panel {
+            width: 300px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .words-panel h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 1.2rem;
+        }
+
+        .words-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            transition: all 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            font-weight: bold;
+        }
+
+        .tab-button:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .words-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .word-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .word-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .word-item.current {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+
+        .word-item.starred {
+            background: rgba(255, 193, 7, 0.2);
+        }
+
+        .remove-icon {
+            color: rgba(0, 0, 0, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .flashcard-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flashcard {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            perspective: 1000px;
+            margin-bottom: 30px;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .flashcard-front {
+            background-color: var(--card-back);
+            color: var(--primary-color);
+        }
+
+        .flashcard-back {
+            background-color: var(--primary-color);
+            color: var(--light-text);
+            transform: rotateY(180deg);
+        }
+
+        .english-word {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .persian-meaning {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .similar-meaning {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .flashcard-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .known-button {
+            background-color: var(--known-color);
+            color: white;
+        }
+
+        .unknown-button {
+            background-color: var(--unknown-color);
+            color: white;
+        }
+
+        .control-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-button:active {
+            transform: translateY(1px);
+        }
+
+        /* انیمیشن‌ها */
+        @keyframes correctAnimation {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        @keyframes incorrectAnimation {
+            0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(244, 67, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+        }
+
+        @keyframes redFlash {
+            0% { background-color: rgba(244, 67, 54, 0.3); }
+            100% { background-color: transparent; }
+        }
+
+        .correct-animation {
+            animation: correctAnimation 1s;
+        }
+
+        .incorrect-animation {
+            animation: incorrectAnimation 1s;
+        }
+
+        .red-flash {
+            animation: redFlash 0.5s;
+        }
+
+        /* استایل فوتر */
+        footer {
+            margin-top: 30px;
+            padding: 20px 0;
+            text-align: center;
+            width: 100%;
+        }
+
+        .footer-content {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer-content p {
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+
+        /* استایل نوار جستجو */
+        .search-bar {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+
+        .search-bar input::placeholder {
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        .search-bar i {
+            color: var(--text-color);
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        /* استایل نوار پیشرفت */
+        .progress-container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--known-color);
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        /* استایل آیکون ستاره */
+        .star-icon {
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.3s;
+            margin-right: 10px;
+            font-size: 1.5rem;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+        }
+
+        .star-icon.starred {
+            color: var(--starred-color);
+        }
+
+        /* مودال آپلود فایل */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card-back);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .file-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .file-item.active {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .file-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+
+        .file-action-btn:hover {
+            color: var(--primary-color);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .modal-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .primary-button {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .secondary-button {
+            background: rgba(0, 0, 0, 0.1);
+            color: var(--text-color);
+        }
+
+        .modal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ریسپانسیو برای موبایل */
+        @media (max-width: 992px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .words-panel {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .flashcard {
+                height: 250px;
+            }
+            
+            .english-word {
+                font-size: 2rem;
+            }
+            
+            .persian-meaning {
+                font-size: 1.5rem;
+            }
+
+            .control-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .file-section {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- افکت زمینه حروف انگلیسی -->
+    <div class="floating-letters">
+        <!-- حروف انگلیسی به صورت متحرک -->
+    </div>
+
+    <!-- مودال مدیریت فایل -->
+    <div class="modal" id="file-manager-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">آپلود فایل جدید</h2>
+            
+            <div class="file-input-container" style="margin-bottom: 20px;">
+                <div class="file-input-button">
+                    <i class="fas fa-upload"></i> انتخاب فایل اکسل
+                </div>
+                <input type="file" id="excel-file-modal" accept=".xlsx, .xls">
+            </div>
+            
+            <div class="file-list" id="file-list">
+                <!-- فایل‌های موجود در اینجا نمایش داده می‌شوند -->
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-button primary-button" id="load-file-btn">بارگذاری فایل انتخاب شده</button>
+                <button class="modal-button secondary-button" id="close-modal-btn">بستن</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="page-title">
+                <h1>برنامه یادگیری زبان</h1>
+            </div>
+        </header>
+
+        <!-- نوار جستجو -->
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search-input" placeholder="جستجوی کلمات...">
+        </div>
+
+        <!-- نوار پیشرفت -->
+        <div class="progress-container">
+            <div class="progress-info">
+                <span id="progress-text">پیشرفت: 0%</span>
+                <span id="stats-text">آمار: 0/0 کلمات</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- نوار کنترل -->
+        <div class="control-bar">
+            <div class="file-section">
+                <div class="file-input-container">
+                    <div class="file-input-button" id="open-file-manager">
+                        <i class="fas fa-folder-open"></i> مدیریت فایل‌ها
+                    </div>
+                </div>
+                <div class="uploaded-files" id="file-name">هیچ فایلی انتخاب نشده است</div>
+            </div>
+            
+            <div class="current-mode" id="current-mode"></div>
+        </div>
+
+        <div class="main-content">
+            <!-- پنل کلمات -->
+            <div class="words-panel">
+                <h2>لیست کلمات</h2>
+                <div class="words-tabs">
+                    <button class="tab-button active" data-tab="all">همه کلمات</button>
+                    <button class="tab-button" data-tab="problems">کلمات مشکل‌دار</button>
+                    <button class="tab-button" data-tab="starred">کلمات ستاره‌دار</button>
+                </div>
+                <div class="words-list" id="words-list">
+                    <!-- محتوای لیست کلمات در اینجا قرار می‌گیرد -->
+                </div>
+            </div>
+
+            <div class="flashcard-container">
+                <div class="flashcard" id="main-flashcard">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="english-word" id="english-word">Welcome</div>
+                            <p>برای مشاهده ترجمه کلیک کنید</p>
+                        </div>
+                        <div class="flashcard-back">
+                            <i class="fas fa-star star-icon" id="star-icon"></i>
+                            <div class="persian-meaning" id="persian-meaning">خوش آمدید</div>
+                            <div class="similar-meaning" id="similar-meaning">مترادف: خوشآمدگویی، استقبال</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-controls">
+                    <button class="control-button known-button" id="known-btn">
+                        <i class="fas fa-check"></i> بلدم
+                    </button>
+                    <button class="control-button unknown-button" id="unknown-btn">
+                        <i class="fas fa-times"></i> نمیدونم
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-content">
+                <p>Developed & Designed by Maziar</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // ایجاد حروف انگلیسی شناور در پس زمینه
+        document.addEventListener('DOMContentLoaded', function() {
+            // ایجاد صداها
+            const winSound = new Audio('win.mp3');
+            const failSound = new Audio('fail.mp3');
+            
+            const lettersContainer = document.querySelector('.floating-letters');
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            
+            for (let i = 0; i < 40; i++) {
+                const letter = document.createElement('span');
+                letter.textContent = letters[Math.floor(Math.random() * letters.length)];
+                letter.style.left = Math.random() * 100 + '%';
+                letter.style.animationDelay = Math.random() * 20 + 's';
+                letter.style.fontSize = (Math.random() * 20 + 16) + 'px';
+                lettersContainer.appendChild(letter);
+            }
+            
+            // مدیریت فایل اکسل
+            const fileModal = document.getElementById('file-manager-modal');
+            const openFileManagerBtn = document.getElementById('open-file-manager');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const loadFileBtn = document.getElementById('load-file-btn');
+            const fileInputModal = document.getElementById('excel-file-modal');
+            const fileListElement = document.getElementById('file-list');
+            const fileName = document.getElementById('file-name');
+            const currentMode = document.getElementById('current-mode');
+            
+            // المنت‌های جدید
+            const searchInput = document.getElementById('search-input');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const wordsList = document.getElementById('words-list');
+            
+            // مدیریت تب‌ها
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // حذف کلاس active از همه دکمه‌ها
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    // اضافه کردن کلاس active به دکمه کلیک شده
+                    this.classList.add('active');
+                    
+                    // به‌روزرسانی لیست کلمات بر اساس تب انتخاب شده
+                    updateWordsList(this.getAttribute('data-tab'));
+                });
+            });
+            
+            // باز کردن مودال مدیریت فایل
+            openFileManagerBtn.addEventListener('click', function() {
+                fileModal.style.display = 'flex';
+                loadFileList();
+            });
+            
+            // بستن مودال
+            closeModalBtn.addEventListener('click', function() {
+                fileModal.style.display = 'none';
+            });
+            
+            // بارگذاری فایل انتخاب شده
+            loadFileBtn.addEventListener('click', async function() {
+                const selectedFile = document.querySelector('.file-item.active');
+                if (selectedFile) {
+                    const fileNameText = selectedFile.querySelector('.file-name').textContent;
+                    
+                    const fileData = await loadFileFromServer(fileNameText);
+                    if (fileData) {
+                        window.originalFlashcardsData = fileData;
+                        window.flashcardsData = [...fileData];
+                        window.currentFlashcardIndex = 0;
+                        window.originalFileName = fileNameText;
+                        
+                        updateModeDisplay();
+                        updateFlashcard();
+                        updateWordsList('all');
+                        updateProgress();
+                        
+                        fileName.textContent = 'فایل انتخاب شده: ' + fileNameText;
+                        fileModal.style.display = 'none';
+                    } else {
+                        alert('خطا در بارگذاری فایل');
+                    }
+                } else {
+                    alert('لطفاً یک فایل را انتخاب کنید');
+                }
+            });
+            
+            // تابع برای دریافت لیست فایل‌ها از سرور
+            async function loadFileListFromServer() {
+                try {
+                    const response = await fetch('list.php');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        return result.files;
+                    } else {
+                        console.error('خطا در دریافت لیست فایل‌ها');
+                        return [];
+                    }
+                } catch (error) {
+                    console.error('خطا در ارتباط با سرور:', error);
+                    return [];
+                }
+            }
+            
+            // تابع برای آپلود فایل
+            async function uploadFile(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                try {
+                    const response = await fetch('upload.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    return result;
+                } catch (error) {
+                    console.error('خطا در آپلود فایل:', error);
+                    return { success: false, message: 'خطا در آپلود فایل' };
+                }
+            }
+            
+            // تابع برای حذف فایل
+            async function deleteFile(fileName) {
+                try {
+                    const response = await fetch('delete.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'fileName=' + encodeURIComponent(fileName)
+                    });
+                    
+                    const result = await response.json();
+                    return result;
+                } catch (error) {
+                    console.error('خطا در حذف فایل:', error);
+                    return { success: false, message: 'خطا در حذف فایل' };
+                }
+            }
+            
+            // تابع برای بارگذاری فایل از سرور
+            async function loadFileFromServer(fileName) {
+                try {
+                    const response = await fetch('file/' + fileName);
+                    const arrayBuffer = await response.arrayBuffer();
+                    
+                    // پردازش فایل اکسل
+                    const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    return processExcelData(jsonData);
+                } catch (error) {
+                    console.error('خطا در بارگذاری فایل:', error);
+                    return null;
+                }
+            }
+            
+            // بارگذاری لیست فایل‌ها
+            async function loadFileList() {
+                fileListElement.innerHTML = '';
+                
+                const files = await loadFileListFromServer();
+                
+                if (files.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'file-item';
+                    emptyMessage.textContent = 'هیچ فایلی در پوشه file وجود ندارد';
+                    fileListElement.appendChild(emptyMessage);
+                    return;
+                }
+                
+                files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span class="file-name">${file.name}</span>
+                        <div class="file-info">
+                            <small>${formatFileSize(file.size)} - ${file.date}</small>
+                        </div>
+                        <div class="file-actions">
+                            <button class="file-action-btn delete-btn" title="حذف فایل"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    
+                    fileItem.addEventListener('click', function(e) {
+                        if (!e.target.classList.contains('delete-btn')) {
+                            document.querySelectorAll('.file-item').forEach(item => {
+                                item.classList.remove('active');
+                            });
+                            this.classList.add('active');
+                        }
+                    });
+                    
+                    const deleteBtn = fileItem.querySelector('.delete-btn');
+                    deleteBtn.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+                        if (confirm(`آیا از حذف فایل "${file.name}" مطمئن هستید؟`)) {
+                            const result = await deleteFile(file.name);
+                            if (result.success) {
+                                fileItem.remove();
+                                alert('فایل با موفقیت حذف شد');
+                            } else {
+                                alert('خطا در حذف فایل: ' + result.message);
+                            }
+                        }
+                    });
+                    
+                    fileListElement.appendChild(fileItem);
+                });
+            }
+            
+            // تابع کمکی برای فرمت‌بندی سایز فایل
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            // پردازش داده‌های اکسل برای یافتن ستون‌های مناسب
+            function processExcelData(data) {
+                if (data.length === 0) return [];
+                
+                // پیدا کردن کلیدهای موجود در داده‌ها
+                const keys = Object.keys(data[0]);
+                
+                // پیدا کردن ستون انگلیسی (اولین ستون)
+                const englishKey = keys[0];
+                
+                // پیدا کردن ستون فارسی (دومین ستون اگر وجود دارد)
+                const persianKey = keys.length > 1 ? keys[1] : null;
+                
+                // پیدا کردن ستون مترادف‌ها (سومین ستون اگر وجود دارد)
+                const similarKey = keys.length > 2 ? keys[2] : null;
+                
+                // تبدیل داده‌ها به فرمت استاندارد
+                return data.map(item => {
+                    return {
+                        english: item[englishKey] || "بدون کلمه انگلیسی",
+                        persian: persianKey ? (item[persianKey] || "بدون معنی فارسی") : "بدون معنی فارسی",
+                        similar: similarKey ? (item[similarKey] || "بدون مترادف") : "بدون مترادف",
+                        isStarred: false,
+                        isProblem: false
+                    };
+                });
+            }
+            
+            // مدیریت آپلود فایل جدید
+            fileInputModal.addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const result = await uploadFile(file);
+                    
+                    if (result.success) {
+                        alert('فایل با موفقیت آپلود شد');
+                        // بارگذاری مجدد لیست فایل‌ها
+                        loadFileList();
+                    } else {
+                        alert('خطا در آپلود فایل: ' + result.message);
+                    }
+                    
+                    // ریست کردن input file
+                    this.value = '';
+                }
+            });
+            
+            // مدیریت فلش کارت
+            const flashcard = document.getElementById('main-flashcard');
+            const knownBtn = document.getElementById('known-btn');
+            const unknownBtn = document.getElementById('unknown-btn');
+            const starIcon = document.getElementById('star-icon');
+            
+            flashcard.addEventListener('click', function() {
+                this.classList.toggle('flipped');
+            });
+            
+            // مدیریت کلیک روی آیکون ستاره
+            starIcon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleStarred();
+            });
+            
+            knownBtn.addEventListener('click', function() {
+                // پخش صدای موفقیت
+                winSound.play();
+                
+                // انیمیشن درست
+                flashcard.classList.add('correct-animation');
+                setTimeout(() => {
+                    flashcard.classList.remove('correct-animation');
+                }, 1000);
+                
+                // اگر کلمه در لیست مشکل‌دارها بود، حذفش کن
+                const currentCard = window.flashcardsData[window.currentFlashcardIndex];
+                if (currentCard.isProblem) {
+                    currentCard.isProblem = false;
+                    saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
+                }
+                
+                // به روزرسانی آمار
+                window.knownWords = (window.knownWords || 0) + 1;
+                updateProgress();
+                
+                nextFlashcard();
+            });
+            
+            unknownBtn.addEventListener('click', function() {
+                // پخش صدای شکست
+                failSound.play();
+                
+                // انیمیشن نادرست و فلش قرمز
+                flashcard.classList.add('incorrect-animation');
+                document.body.classList.add('red-flash');
+                setTimeout(() => {
+                    flashcard.classList.remove('incorrect-animation');
+                    document.body.classList.remove('red-flash');
+                }, 1000);
+                
+                // اضافه کردن به لیست مشکل‌دارها
+                const currentCard = window.flashcardsData[window.currentFlashcardIndex];
+                currentCard.isProblem = true;
+                saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
+                
+                nextFlashcard();
+            });
+            
+            // مدیریت جستجو
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.trim().toLowerCase();
+                if (searchTerm) {
+                    const filteredData = window.originalFlashcardsData.filter(item => 
+                        item.english.toLowerCase().includes(searchTerm) || 
+                        item.persian.includes(searchTerm)
+                    );
+                    
+                    if (filteredData.length > 0) {
+                        window.flashcardsData = filteredData;
+                        window.currentFlashcardIndex = 0;
+                        updateModeDisplay();
+                        updateFlashcard();
+                        updateWordsList('all');
+                    }
+                } else {
+                    // اگر جستجو خالی است، به حالت عادی برگرد
+                    if (window.originalFlashcardsData) {
+                        window.flashcardsData = [...window.originalFlashcardsData];
+                        window.currentFlashcardIndex = 0;
+                        updateModeDisplay();
+                        updateFlashcard();
+                        updateWordsList('all');
+                    }
+                }
+            });
+            
+            // مدیریت کلیدهای کیبورد
+            document.addEventListener('keydown', function(e) {
+                // جلوگیری از عملکرد پیش‌فرض برای کلیدهای فاصله و جهت‌ها
+                if ([32, 37, 38, 39, 40, 49, 50].includes(e.keyCode)) {
+                    e.preventDefault();
+                }
+                
+                switch(e.keyCode) {
+                    case 37: // کلید چپ
+                        prevFlashcard();
+                        break;
+                    case 39: // کلید راست
+                        nextFlashcard();
+                        break;
+                    case 38: // کلید بالا
+                    case 40: // کلید پایین
+                    case 32: // کلید فاصله
+                        flashcard.classList.toggle('flipped');
+                        break;
+                    case 49: // کلید 1
+                        knownBtn.click();
+                        break;
+                    case 50: // کلید 2
+                        unknownBtn.click();
+                        break;
+                }
+            });
+            
+            // به روزرسانی نمایش حالت فعلی
+            function updateModeDisplay() {
+                if (window.originalFlashcardsData) {
+                    currentMode.textContent = 'در حال مرور: ' + (window.originalFileName || 'فایل اکسل');
+                } else {
+                    currentMode.textContent = '';
+                }
+            }
+            
+            // توابع ذخیره‌سازی و بازیابی از localStorage
+            function saveToLocalStorage(key, data) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (e) {
+                    console.error('خطا در ذخیره‌سازی در localStorage:', e);
+                }
+            }
+            
+            function loadFromLocalStorage(key) {
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : null;
+                } catch (e) {
+                    console.error('خطا در بازیابی از localStorage:', e);
+                    return null;
+                }
+            }
+            
+            // مقدار اولیه برای داده‌ها - ابتدا از localStorage بارگذاری می‌کنیم
+            window.originalFlashcardsData = loadFromLocalStorage('originalFlashcardsData') || [
+                {english: 'Welcome', persian: 'خوش آمدید', similar: 'مترادف: خوشآمدگویی، استقبال', isStarred: false, isProblem: false},
+                {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
+                {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false},
+                {english: 'Thank you', persian: 'متشکرم', similar: 'مترادف: سپاسگزارم، ممنون', isStarred: false, isProblem: false},
+                {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false}
+            ];
+            
+            window.originalFileName = loadFromLocalStorage('originalFileName') || 'هیچ فایلی انتخاب نشده است';
+            window.flashcardsData = [...window.originalFlashcardsData];
+            window.currentFlashcardIndex = 0;
+            window.knownWords = loadFromLocalStorage('knownWords') || 0;
+            
+            // به روزرسانی اولیه
+            updateModeDisplay();
+            updateFlashcard();
+            updateWordsList('all');
+            updateProgress();
+            
+            // نمایش نام فایل بارگذاری شده
+            fileName.textContent = 'فایل انتخاب شده: ' + window.originalFileName;
+            
+            // به روزرسانی لیست کلمات
+            function updateWordsList(tab) {
+                wordsList.innerHTML = '';
+                
+                let dataToShow = [];
+                
+                switch(tab) {
+                    case 'all':
+                        dataToShow = window.flashcardsData;
+                        break;
+                    case 'problems':
+                        dataToShow = window.flashcardsData.filter(word => word.isProblem);
+                        break;
+                    case 'starred':
+                        dataToShow = window.flashcardsData.filter(word => word.isStarred);
+                        break;
+                }
+                
+                if (dataToShow.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'word-item';
+                    emptyMessage.textContent = 'هیچ کلمه‌ای وجود ندارد';
+                    wordsList.appendChild(emptyMessage);
+                    return;
+                }
+                
+                dataToShow.forEach((word, index) => {
+                    const wordItem = document.createElement('div');
+                    wordItem.className = 'word-item';
+                    
+                    if (word.isStarred) {
+                        wordItem.classList.add('starred');
+                    }
+                    
+                    if (window.flashcardsData.indexOf(word) === window.currentFlashcardIndex) {
+                        wordItem.classList.add('current');
+                    }
+                    
+                    wordItem.innerHTML = `
+                        <span>${word.english}</span>
+                        <span>${word.persian}</span>
+                    `;
+                    
+                    wordItem.addEventListener('click', function() {
+                        window.currentFlashcardIndex = window.flashcardsData.indexOf(word);
+                        updateFlashcard();
+                        updateWordsList(tab);
+                    });
+                    
+                    wordsList.appendChild(wordItem);
+                });
+            }
+        });
+        
+        // به روزرسانی فلش کارت
+        function updateFlashcard() {
+            if (!window.flashcardsData || window.flashcardsData.length === 0) {
+                document.getElementById('english-word').textContent = 'داده‌ای موجود نیست';
+                document.getElementById('persian-meaning').textContent = 'لطفاً یک فایل اکسل بارگذاری کنید';
+                document.getElementById('similar-meaning').textContent = '';
+                return;
+            }
+            
+            const currentCard = window.flashcardsData[window.currentFlashcardIndex];
+            document.getElementById('english-word').textContent = currentCard.english;
+            document.getElementById('persian-meaning').textContent = currentCard.persian;
+            document.getElementById('similar-meaning').textContent = currentCard.similar;
+            
+            // به روزرسانی وضعیت ستاره
+            const starIcon = document.getElementById('star-icon');
+            if (currentCard.isStarred) {
+                starIcon.classList.add('starred');
+            } else {
+                starIcon.classList.remove('starred');
+            }
+            
+            // اطمینان از اینکه فلش کارت در حالت رو به جلو است
+            document.getElementById('main-flashcard').classList.remove('flipped');
+            
+            // به روزرسانی لیست کلمات
+            const activeTab = document.querySelector('.tab-button.active').getAttribute('data-tab');
+            updateWordsList(activeTab);
+        }
+        
+        // فلش کارت بعدی
+        function nextFlashcard() {
+            if (window.flashcardsData.length === 0) return;
+            
+            window.currentFlashcardIndex = (window.currentFlashcardIndex + 1) % window.flashcardsData.length;
+            updateFlashcard();
+        }
+        
+        // فلش کارت قبلی
+        function prevFlashcard() {
+            if (window.flashcardsData.length === 0) return;
+            
+            window.currentFlashcardIndex = (window.currentFlashcardIndex - 1 + window.flashcardsData.length) % window.flashcardsData.length;
+            updateFlashcard();
+        }
+        
+        // تغییر وضعیت ستاره‌دار بودن
+        function toggleStarred() {
+            const currentCard = window.flashcardsData[window.currentFlashcardIndex];
+            currentCard.isStarred = !currentCard.isStarred;
+            
+            saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
+            updateFlashcard();
+            
+            // به روزرسانی لیست کلمات
+            const activeTab = document.querySelector('.tab-button.active').getAttribute('data-tab');
+            updateWordsList(activeTab);
+        }
+        
+        // به روزرسانی نوار پیشرفت
+        function updateProgress() {
+            if (!window.originalFlashcardsData || window.originalFlashcardsData.length === 0) {
+                document.getElementById('progress-text').textContent = 'پیشرفت: 0%';
+                document.getElementById('stats-text').textContent = 'آمار: 0/0 کلمات';
+                document.getElementById('progress-fill').style.width = '0%';
+                return;
+            }
+            
+            const totalWords = window.originalFlashcardsData.length;
+            const knownWords = window.knownWords || 0;
+            const progress = Math.min(100, Math.round((knownWords / totalWords) * 100));
+            
+            document.getElementById('progress-text').textContent = `پیشرفت: ${progress}%`;
+            document.getElementById('stats-text').textContent = `آمار: ${knownWords}/${totalWords} کلمات`;
+            document.getElementById('progress-fill').style.width = `${progress}%`;
+            
+            // ذخیره آمار در localStorage
+            saveToLocalStorage('knownWords', knownWords);
+        }
+    </script>
+</body>
+</html>
