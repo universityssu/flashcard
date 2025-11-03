@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -788,7 +788,7 @@
             const closeModalBtn = document.getElementById('close-modal-btn');
             const loadFileBtn = document.getElementById('load-file-btn');
             const fileInputModal = document.getElementById('excel-file-modal');
-            const fileListElement = document.getElementById('file-list');
+            const fileList = document.getElementById('file-list');
             const fileName = document.getElementById('file-name');
             const currentMode = document.getElementById('current-mode');
             
@@ -822,129 +822,41 @@
             });
             
             // بارگذاری فایل انتخاب شده
-            loadFileBtn.addEventListener('click', async function() {
+            loadFileBtn.addEventListener('click', function() {
                 const selectedFile = document.querySelector('.file-item.active');
                 if (selectedFile) {
                     const fileNameText = selectedFile.querySelector('.file-name').textContent;
+                    fileName.textContent = 'فایل انتخاب شده: ' + fileNameText;
+                    window.originalFileName = fileNameText;
                     
-                    const fileData = await loadFileFromServer(fileNameText);
-                    if (fileData) {
-                        window.originalFlashcardsData = fileData;
-                        window.flashcardsData = [...fileData];
-                        window.currentFlashcardIndex = 0;
-                        window.originalFileName = fileNameText;
-                        
-                        updateModeDisplay();
-                        updateFlashcard();
-                        updateWordsList('all');
-                        updateProgress();
-                        
-                        fileName.textContent = 'فایل انتخاب شده: ' + fileNameText;
-                        fileModal.style.display = 'none';
-                    } else {
-                        alert('خطا در بارگذاری فایل');
-                    }
+                    // در اینجا می‌توانید کد بارگذاری فایل از سرور را اضافه کنید
+                    // فعلاً از داده‌های نمونه استفاده می‌کنیم
+                    loadSampleData(fileNameText);
+                    
+                    fileModal.style.display = 'none';
                 } else {
                     alert('لطفاً یک فایل را انتخاب کنید');
                 }
             });
             
-            // تابع برای دریافت لیست فایل‌ها از سرور
-            async function loadFileListFromServer() {
-                try {
-                    const response = await fetch('list.php');
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        return result.files;
-                    } else {
-                        console.error('خطا در دریافت لیست فایل‌ها');
-                        return [];
-                    }
-                } catch (error) {
-                    console.error('خطا در ارتباط با سرور:', error);
-                    return [];
-                }
-            }
-            
-            // تابع برای آپلود فایل
-            async function uploadFile(file) {
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                try {
-                    const response = await fetch('upload.php', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    return result;
-                } catch (error) {
-                    console.error('خطا در آپلود فایل:', error);
-                    return { success: false, message: 'خطا در آپلود فایل' };
-                }
-            }
-            
-            // تابع برای حذف فایل
-            async function deleteFile(fileName) {
-                try {
-                    const response = await fetch('delete.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: 'fileName=' + encodeURIComponent(fileName)
-                    });
-                    
-                    const result = await response.json();
-                    return result;
-                } catch (error) {
-                    console.error('خطا در حذف فایل:', error);
-                    return { success: false, message: 'خطا در حذف فایل' };
-                }
-            }
-            
-            // تابع برای بارگذاری فایل از سرور
-            async function loadFileFromServer(fileName) {
-                try {
-                    const response = await fetch('file/' + fileName);
-                    const arrayBuffer = await response.arrayBuffer();
-                    
-                    // پردازش فایل اکسل
-                    const workbook = XLSX.read(arrayBuffer, {type: 'array'});
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                    
-                    return processExcelData(jsonData);
-                } catch (error) {
-                    console.error('خطا در بارگذاری فایل:', error);
-                    return null;
-                }
-            }
-            
             // بارگذاری لیست فایل‌ها
-            async function loadFileList() {
-                fileListElement.innerHTML = '';
+            function loadFileList() {
+                fileList.innerHTML = '';
                 
-                const files = await loadFileListFromServer();
+                // در اینجا می‌توانید لیست فایل‌ها را از سرور دریافت کنید
+                // فعلاً از فایل‌های نمونه استفاده می‌کنیم
+                const sampleFiles = [
+                    'لغات عمومی.xlsx',
+                    'لغات تخصصی پزشکی.xlsx',
+                    'لغات تجاری.xlsx',
+                    'لغات روزمره.xlsx'
+                ];
                 
-                if (files.length === 0) {
-                    const emptyMessage = document.createElement('div');
-                    emptyMessage.className = 'file-item';
-                    emptyMessage.textContent = 'هیچ فایلی در پوشه file وجود ندارد';
-                    fileListElement.appendChild(emptyMessage);
-                    return;
-                }
-                
-                files.forEach(file => {
+                sampleFiles.forEach(file => {
                     const fileItem = document.createElement('div');
                     fileItem.className = 'file-item';
                     fileItem.innerHTML = `
-                        <span class="file-name">${file.name}</span>
-                        <div class="file-info">
-                            <small>${formatFileSize(file.size)} - ${file.date}</small>
-                        </div>
+                        <span class="file-name">${file}</span>
                         <div class="file-actions">
                             <button class="file-action-btn delete-btn" title="حذف فایل"><i class="fas fa-trash"></i></button>
                         </div>
@@ -952,39 +864,142 @@
                     
                     fileItem.addEventListener('click', function(e) {
                         if (!e.target.classList.contains('delete-btn')) {
+                            // حذف کلاس active از همه فایل‌ها
                             document.querySelectorAll('.file-item').forEach(item => {
                                 item.classList.remove('active');
                             });
+                            // اضافه کردن کلاس active به فایل انتخاب شده
                             this.classList.add('active');
                         }
                     });
                     
+                    // مدیریت حذف فایل
                     const deleteBtn = fileItem.querySelector('.delete-btn');
-                    deleteBtn.addEventListener('click', async function(e) {
+                    deleteBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        if (confirm(`آیا از حذف فایل "${file.name}" مطمئن هستید؟`)) {
-                            const result = await deleteFile(file.name);
-                            if (result.success) {
-                                fileItem.remove();
-                                alert('فایل با موفقیت حذف شد');
-                            } else {
-                                alert('خطا در حذف فایل: ' + result.message);
-                            }
+                        if (confirm(`آیا از حذف فایل "${file}" مطمئن هستید؟`)) {
+                            fileItem.remove();
+                            // در اینجا می‌توانید کد حذف فایل از سرور را اضافه کنید
                         }
                     });
                     
-                    fileListElement.appendChild(fileItem);
+                    fileList.appendChild(fileItem);
                 });
             }
             
-            // تابع کمکی برای فرمت‌بندی سایز فایل
-            function formatFileSize(bytes) {
-                if (bytes === 0) return '0 B';
-                const k = 1024;
-                const sizes = ['B', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            // بارگذاری داده‌های نمونه بر اساس نام فایل
+            function loadSampleData(fileName) {
+                let sampleData = [];
+                
+                // داده‌های نمونه برای فایل‌های مختلف
+                if (fileName === 'لغات عمومی.xlsx') {
+                    sampleData = [
+                        {english: 'Welcome', persian: 'خوش آمدید', similar: 'مترادف: خوشآمدگویی، استقبال', isStarred: false, isProblem: false},
+                        {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
+                        {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false},
+                        {english: 'Thank you', persian: 'متشکرم', similar: 'مترادف: سپاسگزارم، ممنون', isStarred: false, isProblem: false},
+                        {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false}
+                    ];
+                } else if (fileName === 'لغات تخصصی پزشکی.xlsx') {
+                    sampleData = [
+                        {english: 'cardiovascular', persian: 'قلبی عروقی', similar: 'مربوط به قلب و رگ‌های خونی', isStarred: false, isProblem: false},
+                        {english: 'system', persian: 'سیستم', similar: 'سامانه، مجموعه', isStarred: false, isProblem: false},
+                        {english: 'consists', persian: 'تشکیل شده است', similar: 'شامل است، متشکل است', isStarred: false, isProblem: false},
+                        {english: 'heart', persian: 'قلب', similar: 'دل، مرکز', isStarred: false, isProblem: false},
+                        {english: 'blood', persian: 'خون', similar: 'خونی، هماتیک', isStarred: false, isProblem: false},
+                        {english: 'vessels', persian: 'رگ‌ها', similar: 'عروق، لوله‌ها', isStarred: false, isProblem: false},
+                        {english: 'primary', persian: 'اصلی', similar: 'اولیه، پایه', isStarred: false, isProblem: false}
+                    ];
+                } else {
+                    // داده‌های پیش‌فرض
+                    sampleData = [
+                        {english: 'Welcome', persian: 'خوش آمدید', similar: 'مترادف: خوشآمدگویی، استقبال', isStarred: false, isProblem: false},
+                        {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
+                        {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false}
+                    ];
+                }
+                
+                window.originalFlashcardsData = sampleData;
+                window.flashcardsData = [...sampleData];
+                window.currentFlashcardIndex = 0;
+                updateModeDisplay();
+                updateFlashcard();
+                updateWordsList('all');
+                updateProgress();
+                
+                // ذخیره داده‌ها در localStorage
+                saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
+                saveToLocalStorage('originalFileName', window.originalFileName);
             }
+            
+            // مدیریت آپلود فایل جدید
+            fileInputModal.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // اضافه کردن فایل جدید به لیست
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item active';
+                    fileItem.innerHTML = `
+                        <span class="file-name">${file.name}</span>
+                        <div class="file-actions">
+                            <button class="file-action-btn delete-btn" title="حذف فایل"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    
+                    fileItem.addEventListener('click', function(e) {
+                        if (!e.target.classList.contains('delete-btn')) {
+                            // حذف کلاس active از همه فایل‌ها
+                            document.querySelectorAll('.file-item').forEach(item => {
+                                item.classList.remove('active');
+                            });
+                            // اضافه کردن کلاس active به فایل انتخاب شده
+                            this.classList.add('active');
+                        }
+                    });
+                    
+                    // مدیریت حذف فایل
+                    const deleteBtn = fileItem.querySelector('.delete-btn');
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (confirm(`آیا از حذف فایل "${file.name}" مطمئن هستید؟`)) {
+                            fileItem.remove();
+                        }
+                    });
+                    
+                    fileList.appendChild(fileItem);
+                    
+                    // خواندن فایل اکسل
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        
+                        // فرض می‌کنیم داده‌ها در اولین sheet هستند
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        
+                        if (jsonData.length > 0) {
+                            // پردازش داده‌های اکسل
+                            window.originalFlashcardsData = processExcelData(jsonData);
+                            window.flashcardsData = [...window.originalFlashcardsData];
+                            window.currentFlashcardIndex = 0;
+                            window.originalFileName = file.name;
+                            
+                            updateModeDisplay();
+                            updateFlashcard();
+                            updateWordsList('all');
+                            updateProgress();
+                            
+                            // ذخیره داده‌ها در localStorage
+                            saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
+                            saveToLocalStorage('originalFileName', window.originalFileName);
+                            
+                            fileName.textContent = 'فایل انتخاب شده: ' + file.name;
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            });
             
             // پردازش داده‌های اکسل برای یافتن ستون‌های مناسب
             function processExcelData(data) {
@@ -1013,25 +1028,6 @@
                     };
                 });
             }
-            
-            // مدیریت آپلود فایل جدید
-            fileInputModal.addEventListener('change', async function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const result = await uploadFile(file);
-                    
-                    if (result.success) {
-                        alert('فایل با موفقیت آپلود شد');
-                        // بارگذاری مجدد لیست فایل‌ها
-                        loadFileList();
-                    } else {
-                        alert('خطا در آپلود فایل: ' + result.message);
-                    }
-                    
-                    // ریست کردن input file
-                    this.value = '';
-                }
-            });
             
             // مدیریت فلش کارت
             const flashcard = document.getElementById('main-flashcard');
@@ -1186,7 +1182,7 @@
                 {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false}
             ];
             
-            window.originalFileName = loadFromLocalStorage('originalFileName') || 'هیچ فایلی انتخاب نشده است';
+            window.originalFileName = loadFromLocalStorage('originalFileName') || 'لغات عمومی.xlsx';
             window.flashcardsData = [...window.originalFlashcardsData];
             window.currentFlashcardIndex = 0;
             window.knownWords = loadFromLocalStorage('knownWords') || 0;
