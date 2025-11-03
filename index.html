@@ -507,114 +507,6 @@
             color: var(--starred-color);
         }
 
-        /* مودال آپلود فایل */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: var(--card-back);
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-title {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            color: var(--primary-color);
-        }
-
-        .file-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 20px 0;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 10px;
-        }
-
-        .file-item {
-            padding: 10px;
-            margin-bottom: 8px;
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .file-item:hover {
-            background: rgba(0, 0, 0, 0.1);
-        }
-
-        .file-item.active {
-            background: rgba(33, 150, 243, 0.2);
-            border: 1px solid rgba(33, 150, 243, 0.5);
-        }
-
-        .file-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .file-action-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-color);
-            font-size: 1rem;
-        }
-
-        .file-action-btn:hover {
-            color: var(--primary-color);
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .modal-button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-        }
-
-        .primary-button {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .secondary-button {
-            background: rgba(0, 0, 0, 0.1);
-            color: var(--text-color);
-        }
-
-        .modal-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
         /* ریسپانسیو برای موبایل */
         @media (max-width: 992px) {
             .main-content {
@@ -655,29 +547,6 @@
         <!-- حروف انگلیسی به صورت متحرک -->
     </div>
 
-    <!-- مودال مدیریت فایل -->
-    <div class="modal" id="file-manager-modal">
-        <div class="modal-content">
-            <h2 class="modal-title">آپلود فایل جدید</h2>
-            
-            <div class="file-input-container" style="margin-bottom: 20px;">
-                <div class="file-input-button">
-                    <i class="fas fa-upload"></i> انتخاب فایل اکسل
-                </div>
-                <input type="file" id="excel-file-modal" accept=".xlsx, .xls">
-            </div>
-            
-            <div class="file-list" id="file-list">
-                <!-- فایل‌های موجود در اینجا نمایش داده می‌شوند -->
-            </div>
-            
-            <div class="modal-buttons">
-                <button class="modal-button primary-button" id="load-file-btn">بارگذاری فایل انتخاب شده</button>
-                <button class="modal-button secondary-button" id="close-modal-btn">بستن</button>
-            </div>
-        </div>
-    </div>
-
     <div class="container">
         <header>
             <div class="page-title">
@@ -706,9 +575,10 @@
         <div class="control-bar">
             <div class="file-section">
                 <div class="file-input-container">
-                    <div class="file-input-button" id="open-file-manager">
-                        <i class="fas fa-folder-open"></i> مدیریت فایل‌ها
+                    <div class="file-input-button">
+                        <i class="fas fa-upload"></i> انتخاب فایل اکسل
                     </div>
+                    <input type="file" id="excel-file" accept=".xlsx, .xls">
                 </div>
                 <div class="uploaded-files" id="file-name">هیچ فایلی انتخاب نشده است</div>
             </div>
@@ -783,12 +653,7 @@
             }
             
             // مدیریت فایل اکسل
-            const fileModal = document.getElementById('file-manager-modal');
-            const openFileManagerBtn = document.getElementById('open-file-manager');
-            const closeModalBtn = document.getElementById('close-modal-btn');
-            const loadFileBtn = document.getElementById('load-file-btn');
-            const fileInputModal = document.getElementById('excel-file-modal');
-            const fileList = document.getElementById('file-list');
+            const fileInput = document.getElementById('excel-file');
             const fileName = document.getElementById('file-name');
             const currentMode = document.getElementById('current-mode');
             
@@ -810,165 +675,12 @@
                 });
             });
             
-            // باز کردن مودال مدیریت فایل
-            openFileManagerBtn.addEventListener('click', function() {
-                fileModal.style.display = 'flex';
-                loadFileList();
-            });
-            
-            // بستن مودال
-            closeModalBtn.addEventListener('click', function() {
-                fileModal.style.display = 'none';
-            });
-            
-            // بارگذاری فایل انتخاب شده
-            loadFileBtn.addEventListener('click', function() {
-                const selectedFile = document.querySelector('.file-item.active');
-                if (selectedFile) {
-                    const fileNameText = selectedFile.querySelector('.file-name').textContent;
-                    fileName.textContent = 'فایل انتخاب شده: ' + fileNameText;
-                    window.originalFileName = fileNameText;
-                    
-                    // در اینجا می‌توانید کد بارگذاری فایل از سرور را اضافه کنید
-                    // فعلاً از داده‌های نمونه استفاده می‌کنیم
-                    loadSampleData(fileNameText);
-                    
-                    fileModal.style.display = 'none';
-                } else {
-                    alert('لطفاً یک فایل را انتخاب کنید');
-                }
-            });
-            
-            // بارگذاری لیست فایل‌ها
-            function loadFileList() {
-                fileList.innerHTML = '';
-                
-                // در اینجا می‌توانید لیست فایل‌ها را از سرور دریافت کنید
-                // فعلاً از فایل‌های نمونه استفاده می‌کنیم
-                const sampleFiles = [
-                    'لغات عمومی.xlsx',
-                    'لغات تخصصی پزشکی.xlsx',
-                    'لغات تجاری.xlsx',
-                    'لغات روزمره.xlsx'
-                ];
-                
-                sampleFiles.forEach(file => {
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-                    fileItem.innerHTML = `
-                        <span class="file-name">${file}</span>
-                        <div class="file-actions">
-                            <button class="file-action-btn delete-btn" title="حذف فایل"><i class="fas fa-trash"></i></button>
-                        </div>
-                    `;
-                    
-                    fileItem.addEventListener('click', function(e) {
-                        if (!e.target.classList.contains('delete-btn')) {
-                            // حذف کلاس active از همه فایل‌ها
-                            document.querySelectorAll('.file-item').forEach(item => {
-                                item.classList.remove('active');
-                            });
-                            // اضافه کردن کلاس active به فایل انتخاب شده
-                            this.classList.add('active');
-                        }
-                    });
-                    
-                    // مدیریت حذف فایل
-                    const deleteBtn = fileItem.querySelector('.delete-btn');
-                    deleteBtn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        if (confirm(`آیا از حذف فایل "${file}" مطمئن هستید؟`)) {
-                            fileItem.remove();
-                            // در اینجا می‌توانید کد حذف فایل از سرور را اضافه کنید
-                        }
-                    });
-                    
-                    fileList.appendChild(fileItem);
-                });
-            }
-            
-            // بارگذاری داده‌های نمونه بر اساس نام فایل
-            function loadSampleData(fileName) {
-                let sampleData = [];
-                
-                // داده‌های نمونه برای فایل‌های مختلف
-                if (fileName === 'لغات عمومی.xlsx') {
-                    sampleData = [
-                        {english: 'Welcome', persian: 'خوش آمدید', similar: 'مترادف: خوشآمدگویی، استقبال', isStarred: false, isProblem: false},
-                        {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
-                        {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false},
-                        {english: 'Thank you', persian: 'متشکرم', similar: 'مترادف: سپاسگزارم، ممنون', isStarred: false, isProblem: false},
-                        {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false}
-                    ];
-                } else if (fileName === 'لغات تخصصی پزشکی.xlsx') {
-                    sampleData = [
-                        {english: 'cardiovascular', persian: 'قلبی عروقی', similar: 'مربوط به قلب و رگ‌های خونی', isStarred: false, isProblem: false},
-                        {english: 'system', persian: 'سیستم', similar: 'سامانه، مجموعه', isStarred: false, isProblem: false},
-                        {english: 'consists', persian: 'تشکیل شده است', similar: 'شامل است، متشکل است', isStarred: false, isProblem: false},
-                        {english: 'heart', persian: 'قلب', similar: 'دل، مرکز', isStarred: false, isProblem: false},
-                        {english: 'blood', persian: 'خون', similar: 'خونی، هماتیک', isStarred: false, isProblem: false},
-                        {english: 'vessels', persian: 'رگ‌ها', similar: 'عروق، لوله‌ها', isStarred: false, isProblem: false},
-                        {english: 'primary', persian: 'اصلی', similar: 'اولیه، پایه', isStarred: false, isProblem: false}
-                    ];
-                } else {
-                    // داده‌های پیش‌فرض
-                    sampleData = [
-                        {english: 'Welcome', persian: 'خوش آمدید', similar: 'مترادف: خوشآمدگویی، استقبال', isStarred: false, isProblem: false},
-                        {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
-                        {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false}
-                    ];
-                }
-                
-                window.originalFlashcardsData = sampleData;
-                window.flashcardsData = [...sampleData];
-                window.currentFlashcardIndex = 0;
-                updateModeDisplay();
-                updateFlashcard();
-                updateWordsList('all');
-                updateProgress();
-                
-                // ذخیره داده‌ها در localStorage
-                saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
-                saveToLocalStorage('originalFileName', window.originalFileName);
-            }
-            
-            // مدیریت آپلود فایل جدید
-            fileInputModal.addEventListener('change', function(e) {
+            fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
-                    // اضافه کردن فایل جدید به لیست
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item active';
-                    fileItem.innerHTML = `
-                        <span class="file-name">${file.name}</span>
-                        <div class="file-actions">
-                            <button class="file-action-btn delete-btn" title="حذف فایل"><i class="fas fa-trash"></i></button>
-                        </div>
-                    `;
+                    fileName.textContent = 'فایل انتخاب شده: ' + file.name;
+                    window.originalFileName = file.name;
                     
-                    fileItem.addEventListener('click', function(e) {
-                        if (!e.target.classList.contains('delete-btn')) {
-                            // حذف کلاس active از همه فایل‌ها
-                            document.querySelectorAll('.file-item').forEach(item => {
-                                item.classList.remove('active');
-                            });
-                            // اضافه کردن کلاس active به فایل انتخاب شده
-                            this.classList.add('active');
-                        }
-                    });
-                    
-                    // مدیریت حذف فایل
-                    const deleteBtn = fileItem.querySelector('.delete-btn');
-                    deleteBtn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        if (confirm(`آیا از حذف فایل "${file.name}" مطمئن هستید؟`)) {
-                            fileItem.remove();
-                        }
-                    });
-                    
-                    fileList.appendChild(fileItem);
-                    
-                    // خواندن فایل اکسل
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         const data = new Uint8Array(e.target.result);
@@ -979,12 +691,10 @@
                         const jsonData = XLSX.utils.sheet_to_json(firstSheet);
                         
                         if (jsonData.length > 0) {
-                            // پردازش داده‌های اکسل
+                            // ذخیره داده‌ها و نمایش فلش کارت‌ها
                             window.originalFlashcardsData = processExcelData(jsonData);
                             window.flashcardsData = [...window.originalFlashcardsData];
                             window.currentFlashcardIndex = 0;
-                            window.originalFileName = file.name;
-                            
                             updateModeDisplay();
                             updateFlashcard();
                             updateWordsList('all');
@@ -993,8 +703,6 @@
                             // ذخیره داده‌ها در localStorage
                             saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
                             saveToLocalStorage('originalFileName', window.originalFileName);
-                            
-                            fileName.textContent = 'فایل انتخاب شده: ' + file.name;
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -1179,10 +887,17 @@
                 {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
                 {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false},
                 {english: 'Thank you', persian: 'متشکرم', similar: 'مترادف: سپاسگزارم، ممنون', isStarred: false, isProblem: false},
-                {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false}
+                {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false},
+                {english: 'cardiovascular', persian: 'قلبی عروقی', similar: 'مربوط به قلب و رگ‌های خونی', isStarred: false, isProblem: false},
+                {english: 'system', persian: 'سیستم', similar: 'سامانه، مجموعه', isStarred: false, isProblem: false},
+                {english: 'consists', persian: 'تشکیل شده است', similar: 'شامل است، متشکل است', isStarred: false, isProblem: false},
+                {english: 'heart', persian: 'قلب', similar: 'دل، مرکز', isStarred: false, isProblem: false},
+                {english: 'blood', persian: 'خون', similar: 'خونی، هماتیک', isStarred: false, isProblem: false},
+                {english: 'vessels', persian: 'رگ‌ها', similar: 'عروق، لوله‌ها', isStarred: false, isProblem: false},
+                {english: 'primary', persian: 'اصلی', similar: 'اولیه، پایه', isStarred: false, isProblem: false}
             ];
             
-            window.originalFileName = loadFromLocalStorage('originalFileName') || 'لغات عمومی.xlsx';
+            window.originalFileName = loadFromLocalStorage('originalFileName') || 'فایل نمونه';
             window.flashcardsData = [...window.originalFlashcardsData];
             window.currentFlashcardIndex = 0;
             window.knownWords = loadFromLocalStorage('knownWords') || 0;
