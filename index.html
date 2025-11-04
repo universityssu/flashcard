@@ -634,11 +634,22 @@
     </div>
 
     <script>
+        // متغیرهای جهانی
+        let flashcardsData = [];
+        let originalFlashcardsData = [];
+        let currentFlashcardIndex = 0;
+        let knownWords = 0;
+        let originalFileName = 'فایل نمونه';
+
         // ایجاد حروف انگلیسی شناور در پس زمینه
         document.addEventListener('DOMContentLoaded', function() {
             // ایجاد صداها
-            const winSound = new Audio('win.mp3');
-            const failSound = new Audio('fail.mp3');
+            const winSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
+            const failSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3');
+            
+            // تنظیم حجم صداها
+            winSound.volume = 0.5;
+            failSound.volume = 0.5;
             
             const lettersContainer = document.querySelector('.floating-letters');
             const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -679,7 +690,7 @@
                 const file = e.target.files[0];
                 if (file) {
                     fileName.textContent = 'فایل انتخاب شده: ' + file.name;
-                    window.originalFileName = file.name;
+                    originalFileName = file.name;
                     
                     const reader = new FileReader();
                     reader.onload = function(e) {
@@ -692,17 +703,19 @@
                         
                         if (jsonData.length > 0) {
                             // ذخیره داده‌ها و نمایش فلش کارت‌ها
-                            window.originalFlashcardsData = processExcelData(jsonData);
-                            window.flashcardsData = [...window.originalFlashcardsData];
-                            window.currentFlashcardIndex = 0;
+                            originalFlashcardsData = processExcelData(jsonData);
+                            flashcardsData = [...originalFlashcardsData];
+                            currentFlashcardIndex = 0;
+                            knownWords = 0;
                             updateModeDisplay();
                             updateFlashcard();
                             updateWordsList('all');
                             updateProgress();
                             
                             // ذخیره داده‌ها در localStorage
-                            saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
-                            saveToLocalStorage('originalFileName', window.originalFileName);
+                            saveToLocalStorage('originalFlashcardsData', originalFlashcardsData);
+                            saveToLocalStorage('originalFileName', originalFileName);
+                            saveToLocalStorage('knownWords', knownWords);
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -753,71 +766,99 @@
                 toggleStarred();
             });
             
-            knownBtn.addEventListener('click', function() {
+            // مدیریت دکمه "بلدم"
+            knownBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('دکمه بلدم کلیک شد');
+                
                 // پخش صدای موفقیت
-                winSound.play();
+                try {
+                    winSound.currentTime = 0;
+                    winSound.play().catch(e => console.log('خطا در پخش صدا:', e));
+                } catch (e) {
+                    console.log('خطا در پخش صدا:', e);
+                }
                 
                 // انیمیشن درست
                 flashcard.classList.add('correct-animation');
-                setTimeout(() => {
-                    flashcard.classList.remove('correct-animation');
-                }, 1000);
                 
                 // اگر کلمه در لیست مشکل‌دارها بود، حذفش کن
-                const currentCard = window.flashcardsData[window.currentFlashcardIndex];
-                if (currentCard.isProblem) {
-                    currentCard.isProblem = false;
-                    saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
+                if (flashcardsData.length > 0) {
+                    const currentCard = flashcardsData[currentFlashcardIndex];
+                    if (currentCard.isProblem) {
+                        currentCard.isProblem = false;
+                        saveToLocalStorage('originalFlashcardsData', originalFlashcardsData);
+                    }
+                    
+                    // به روزرسانی آمار
+                    knownWords++;
+                    updateProgress();
+                    
+                    // رفتن به کارت بعدی
+                    setTimeout(() => {
+                        flashcard.classList.remove('correct-animation');
+                        nextFlashcard();
+                    }, 800);
                 }
-                
-                // به روزرسانی آمار
-                window.knownWords = (window.knownWords || 0) + 1;
-                updateProgress();
-                
-                nextFlashcard();
             });
             
-            unknownBtn.addEventListener('click', function() {
+            // مدیریت دکمه "نمیدونم"
+            unknownBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('دکمه نمیدونم کلیک شد');
+                
                 // پخش صدای شکست
-                failSound.play();
+                try {
+                    failSound.currentTime = 0;
+                    failSound.play().catch(e => console.log('خطا در پخش صدا:', e));
+                } catch (e) {
+                    console.log('خطا در پخش صدا:', e);
+                }
                 
                 // انیمیشن نادرست و فلش قرمز
                 flashcard.classList.add('incorrect-animation');
                 document.body.classList.add('red-flash');
-                setTimeout(() => {
-                    flashcard.classList.remove('incorrect-animation');
-                    document.body.classList.remove('red-flash');
-                }, 1000);
                 
                 // اضافه کردن به لیست مشکل‌دارها
-                const currentCard = window.flashcardsData[window.currentFlashcardIndex];
-                currentCard.isProblem = true;
-                saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
-                
-                nextFlashcard();
+                if (flashcardsData.length > 0) {
+                    const currentCard = flashcardsData[currentFlashcardIndex];
+                    currentCard.isProblem = true;
+                    saveToLocalStorage('originalFlashcardsData', originalFlashcardsData);
+                    
+                    // رفتن به کارت بعدی
+                    setTimeout(() => {
+                        flashcard.classList.remove('incorrect-animation');
+                        document.body.classList.remove('red-flash');
+                        nextFlashcard();
+                    }, 800);
+                }
             });
             
             // مدیریت جستجو
             searchInput.addEventListener('input', function() {
                 const searchTerm = this.value.trim().toLowerCase();
                 if (searchTerm) {
-                    const filteredData = window.originalFlashcardsData.filter(item => 
+                    const filteredData = originalFlashcardsData.filter(item => 
                         item.english.toLowerCase().includes(searchTerm) || 
                         item.persian.includes(searchTerm)
                     );
                     
                     if (filteredData.length > 0) {
-                        window.flashcardsData = filteredData;
-                        window.currentFlashcardIndex = 0;
+                        flashcardsData = filteredData;
+                        currentFlashcardIndex = 0;
                         updateModeDisplay();
                         updateFlashcard();
                         updateWordsList('all');
                     }
                 } else {
                     // اگر جستجو خالی است، به حالت عادی برگرد
-                    if (window.originalFlashcardsData) {
-                        window.flashcardsData = [...window.originalFlashcardsData];
-                        window.currentFlashcardIndex = 0;
+                    if (originalFlashcardsData) {
+                        flashcardsData = [...originalFlashcardsData];
+                        currentFlashcardIndex = 0;
                         updateModeDisplay();
                         updateFlashcard();
                         updateWordsList('all');
@@ -855,8 +896,8 @@
             
             // به روزرسانی نمایش حالت فعلی
             function updateModeDisplay() {
-                if (window.originalFlashcardsData) {
-                    currentMode.textContent = 'در حال مرور: ' + (window.originalFileName || 'فایل اکسل');
+                if (originalFlashcardsData) {
+                    currentMode.textContent = 'در حال مرور: ' + (originalFileName || 'فایل اکسل');
                 } else {
                     currentMode.textContent = '';
                 }
@@ -882,25 +923,26 @@
             }
             
             // مقدار اولیه برای داده‌ها - ابتدا از localStorage بارگذاری می‌کنیم
-            window.originalFlashcardsData = loadFromLocalStorage('originalFlashcardsData') || [
-                {english: 'Welcome', persian: 'خوش آمدید', similar: 'مترادف: خوشآمدگویی، استقبال', isStarred: false, isProblem: false},
-                {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
-                {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false},
-                {english: 'Thank you', persian: 'متشکرم', similar: 'مترادف: سپاسگزارم، ممنون', isStarred: false, isProblem: false},
-                {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false},
-                {english: 'cardiovascular', persian: 'قلبی عروقی', similar: 'مربوط به قلب و رگ‌های خونی', isStarred: false, isProblem: false},
-                {english: 'system', persian: 'سیستم', similar: 'سامانه، مجموعه', isStarred: false, isProblem: false},
-                {english: 'consists', persian: 'تشکیل شده است', similar: 'شامل است، متشکل است', isStarred: false, isProblem: false},
-                {english: 'heart', persian: 'قلب', similar: 'دل، مرکز', isStarred: false, isProblem: false},
-                {english: 'blood', persian: 'خون', similar: 'خونی، هماتیک', isStarred: false, isProblem: false},
-                {english: 'vessels', persian: 'رگ‌ها', similar: 'عروق، لوله‌ها', isStarred: false, isProblem: false},
-                {english: 'primary', persian: 'اصلی', similar: 'اولیه، پایه', isStarred: false, isProblem: false}
-            ];
+            const savedData = loadFromLocalStorage('originalFlashcardsData');
+            if (savedData && savedData.length > 0) {
+                originalFlashcardsData = savedData;
+                flashcardsData = [...originalFlashcardsData];
+                originalFileName = loadFromLocalStorage('originalFileName') || 'فایل نمونه';
+                knownWords = loadFromLocalStorage('knownWords') || 0;
+            } else {
+                // داده‌های پیش‌فرض
+                originalFlashcardsData = [
+                    {english: 'Welcome', persian: 'خوش آمدید', similar: 'مترادف: خوشآمدگویی، استقبال', isStarred: false, isProblem: false},
+                    {english: 'Hello', persian: 'سلام', similar: 'مترادف: درود، احوالپرسی', isStarred: false, isProblem: false},
+                    {english: 'Goodbye', persian: 'خداحافظ', similar: 'مترادف: بدرود، وداع', isStarred: false, isProblem: false},
+                    {english: 'Thank you', persian: 'متشکرم', similar: 'مترادف: سپاسگزارم، ممنون', isStarred: false, isProblem: false},
+                    {english: 'Please', persian: 'لطفا', similar: 'مترادف: خواهش می‌کنم، مهربانی', isStarred: false, isProblem: false}
+                ];
+                flashcardsData = [...originalFlashcardsData];
+                knownWords = 0;
+            }
             
-            window.originalFileName = loadFromLocalStorage('originalFileName') || 'فایل نمونه';
-            window.flashcardsData = [...window.originalFlashcardsData];
-            window.currentFlashcardIndex = 0;
-            window.knownWords = loadFromLocalStorage('knownWords') || 0;
+            currentFlashcardIndex = 0;
             
             // به روزرسانی اولیه
             updateModeDisplay();
@@ -909,72 +951,75 @@
             updateProgress();
             
             // نمایش نام فایل بارگذاری شده
-            fileName.textContent = 'فایل انتخاب شده: ' + window.originalFileName;
-            
-            // به روزرسانی لیست کلمات
-            function updateWordsList(tab) {
-                wordsList.innerHTML = '';
-                
-                let dataToShow = [];
-                
-                switch(tab) {
-                    case 'all':
-                        dataToShow = window.flashcardsData;
-                        break;
-                    case 'problems':
-                        dataToShow = window.flashcardsData.filter(word => word.isProblem);
-                        break;
-                    case 'starred':
-                        dataToShow = window.flashcardsData.filter(word => word.isStarred);
-                        break;
-                }
-                
-                if (dataToShow.length === 0) {
-                    const emptyMessage = document.createElement('div');
-                    emptyMessage.className = 'word-item';
-                    emptyMessage.textContent = 'هیچ کلمه‌ای وجود ندارد';
-                    wordsList.appendChild(emptyMessage);
-                    return;
-                }
-                
-                dataToShow.forEach((word, index) => {
-                    const wordItem = document.createElement('div');
-                    wordItem.className = 'word-item';
-                    
-                    if (word.isStarred) {
-                        wordItem.classList.add('starred');
-                    }
-                    
-                    if (window.flashcardsData.indexOf(word) === window.currentFlashcardIndex) {
-                        wordItem.classList.add('current');
-                    }
-                    
-                    wordItem.innerHTML = `
-                        <span>${word.english}</span>
-                        <span>${word.persian}</span>
-                    `;
-                    
-                    wordItem.addEventListener('click', function() {
-                        window.currentFlashcardIndex = window.flashcardsData.indexOf(word);
-                        updateFlashcard();
-                        updateWordsList(tab);
-                    });
-                    
-                    wordsList.appendChild(wordItem);
-                });
-            }
+            fileName.textContent = 'فایل انتخاب شده: ' + originalFileName;
         });
+        
+        // به روزرسانی لیست کلمات
+        function updateWordsList(tab) {
+            const wordsList = document.getElementById('words-list');
+            wordsList.innerHTML = '';
+            
+            let dataToShow = [];
+            
+            switch(tab) {
+                case 'all':
+                    dataToShow = flashcardsData;
+                    break;
+                case 'problems':
+                    dataToShow = flashcardsData.filter(word => word.isProblem);
+                    break;
+                case 'starred':
+                    dataToShow = flashcardsData.filter(word => word.isStarred);
+                    break;
+            }
+            
+            if (dataToShow.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'word-item';
+                emptyMessage.textContent = 'هیچ کلمه‌ای وجود ندارد';
+                wordsList.appendChild(emptyMessage);
+                return;
+            }
+            
+            dataToShow.forEach((word, index) => {
+                const wordItem = document.createElement('div');
+                wordItem.className = 'word-item';
+                
+                if (word.isStarred) {
+                    wordItem.classList.add('starred');
+                }
+                
+                // پیدا کردن ایندکس واقعی کلمه در flashcardsData اصلی
+                const actualIndex = flashcardsData.findIndex(w => w.english === word.english && w.persian === word.persian);
+                if (actualIndex === currentFlashcardIndex) {
+                    wordItem.classList.add('current');
+                }
+                
+                wordItem.innerHTML = `
+                    <span>${word.english}</span>
+                    <span>${word.persian}</span>
+                `;
+                
+                wordItem.addEventListener('click', function() {
+                    currentFlashcardIndex = actualIndex;
+                    updateFlashcard();
+                    updateWordsList(tab);
+                });
+                
+                wordsList.appendChild(wordItem);
+            });
+        }
         
         // به روزرسانی فلش کارت
         function updateFlashcard() {
-            if (!window.flashcardsData || window.flashcardsData.length === 0) {
+            if (!flashcardsData || flashcardsData.length === 0) {
                 document.getElementById('english-word').textContent = 'داده‌ای موجود نیست';
                 document.getElementById('persian-meaning').textContent = 'لطفاً یک فایل اکسل بارگذاری کنید';
                 document.getElementById('similar-meaning').textContent = '';
                 return;
             }
             
-            const currentCard = window.flashcardsData[window.currentFlashcardIndex];
+            const currentCard = flashcardsData[currentFlashcardIndex];
             document.getElementById('english-word').textContent = currentCard.english;
             document.getElementById('persian-meaning').textContent = currentCard.persian;
             document.getElementById('similar-meaning').textContent = currentCard.similar;
@@ -997,44 +1042,43 @@
         
         // فلش کارت بعدی
         function nextFlashcard() {
-            if (window.flashcardsData.length === 0) return;
+            if (flashcardsData.length === 0) return;
             
-            window.currentFlashcardIndex = (window.currentFlashcardIndex + 1) % window.flashcardsData.length;
+            currentFlashcardIndex = (currentFlashcardIndex + 1) % flashcardsData.length;
+            console.log('رفتن به کارت بعدی، ایندکس جدید:', currentFlashcardIndex);
             updateFlashcard();
         }
         
         // فلش کارت قبلی
         function prevFlashcard() {
-            if (window.flashcardsData.length === 0) return;
+            if (flashcardsData.length === 0) return;
             
-            window.currentFlashcardIndex = (window.currentFlashcardIndex - 1 + window.flashcardsData.length) % window.flashcardsData.length;
+            currentFlashcardIndex = (currentFlashcardIndex - 1 + flashcardsData.length) % flashcardsData.length;
+            console.log('رفتن به کارت قبلی، ایندکس جدید:', currentFlashcardIndex);
             updateFlashcard();
         }
         
         // تغییر وضعیت ستاره‌دار بودن
         function toggleStarred() {
-            const currentCard = window.flashcardsData[window.currentFlashcardIndex];
+            if (flashcardsData.length === 0) return;
+            
+            const currentCard = flashcardsData[currentFlashcardIndex];
             currentCard.isStarred = !currentCard.isStarred;
             
-            saveToLocalStorage('originalFlashcardsData', window.originalFlashcardsData);
+            saveToLocalStorage('originalFlashcardsData', originalFlashcardsData);
             updateFlashcard();
-            
-            // به روزرسانی لیست کلمات
-            const activeTab = document.querySelector('.tab-button.active').getAttribute('data-tab');
-            updateWordsList(activeTab);
         }
         
         // به روزرسانی نوار پیشرفت
         function updateProgress() {
-            if (!window.originalFlashcardsData || window.originalFlashcardsData.length === 0) {
+            if (!originalFlashcardsData || originalFlashcardsData.length === 0) {
                 document.getElementById('progress-text').textContent = 'پیشرفت: 0%';
                 document.getElementById('stats-text').textContent = 'آمار: 0/0 کلمات';
                 document.getElementById('progress-fill').style.width = '0%';
                 return;
             }
             
-            const totalWords = window.originalFlashcardsData.length;
-            const knownWords = window.knownWords || 0;
+            const totalWords = originalFlashcardsData.length;
             const progress = Math.min(100, Math.round((knownWords / totalWords) * 100));
             
             document.getElementById('progress-text').textContent = `پیشرفت: ${progress}%`;
@@ -1043,6 +1087,15 @@
             
             // ذخیره آمار در localStorage
             saveToLocalStorage('knownWords', knownWords);
+        }
+
+        // تابع saveToLocalStorage برای استفاده خارج از DOMContentLoaded
+        function saveToLocalStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error('خطا در ذخیره‌سازی در localStorage:', e);
+            }
         }
     </script>
 </body>
